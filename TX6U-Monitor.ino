@@ -1,5 +1,5 @@
 /**
-    Raspberry Pi ISR for TX6U LaCrosse Temperature Sensor
+    Arduino Sketch for TX6U LaCrosse Temperature Sensor
    
     Reference Links:
         http://www.f6fbb.org/domo/sensors/tx_signals.php  -- wave forms
@@ -51,8 +51,9 @@
     Acknowlegement:
         https://github.com/pwdng/WeatherMonitor 
             provided the initial code. I rewrote the various functions to my style.
+        
+    Special thanks to Ernest Biancarelli for this post and the description above
         http://biancarelli.org/blog/2014/07/27/fun-with-a-tx6u-temperature-sensor/
-            get this info
 
 **/
 
@@ -75,7 +76,7 @@ void printRing();
 void putValue(byte);
 byte getValue();
 
-//#define DEBUG
+#define DEBUG
 
 void setup() {
   
