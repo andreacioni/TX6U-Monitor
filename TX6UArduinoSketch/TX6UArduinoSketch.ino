@@ -93,22 +93,37 @@ void loop() {
     #ifdef DEBUG
      Serial.println("pattern recognized");
     #endif
-    int i=0;
+    int i=0,value=0;
+    byte sum=0;
     byte type,id,data,checksum;
      while(i<32)
      {
        if(readI != writeI)
        {
+         byte bit = getValue();
          #ifdef DEBUG
-          Serial.print(getValue());
-          if(((i+1) % 4)  == 0)
-           Serial.print(" ");
+          Serial.print(bit);
          #endif
-          i++;
+         if(bit == 1)
+           value += bit(i%4);
+         if(((i+1) % 4)  == 0)
+         {
+           Serial.print("(");
+           Serial.print(value);
+           Serial.print(")");
+           Serial.print(" ");
+           sum += (byte) value;
+           value=0;
+         }
+         
+         i++;
        }
        
      }
      #ifdef DEBUG
+       sum = sum & 0x0F;
+       Serial.print(" SUM:");
+       Serial.print(sum,HEX);
        Serial.println();
      #endif
           
