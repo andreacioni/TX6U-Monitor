@@ -75,8 +75,10 @@ boolean recognizePattern();
 void printRing();
 void putValue(byte);
 byte getValue();
+int powerOfTwo(int); //pow() give round error need to be re-write!!!
 
 #define DEBUG
+//define DEBUG2
 
 void setup() {
   
@@ -90,38 +92,57 @@ void setup() {
 void loop() {
   if(recognizePattern())
   {
+    unsigned long start = micros() + 2000000; // 2 sec.
+    
     #ifdef DEBUG
-     Serial.println("pattern recognized");
+     Serial.println("pattern rec!");
+     Serial.print("0000(0) 1010(A) ");
     #endif
-    int i=0,value=0;
-    byte sum=0;
-    byte type,id,data,checksum;
-     while(i<32)
+    
+    int i=0,j=3,value=0,sum=10,chk=0; // 0A init pattern
+    
+     while(i<32 && micros() < start)
      {
        if(readI != writeI)
        {
-         byte bit = getValue();
-         #ifdef DEBUG
-          Serial.print(bit);
-         #endif
-         if(bit == 1)
-           value += bit(i%4);
-         if(((i+1) % 4)  == 0)
-         {
-           Serial.print("(");
-           Serial.print(value);
-           Serial.print(")");
-           Serial.print(" ");
-           sum += (byte) value;
-           value=0;
-         }
+         byte bitR = getValue();
          
+         #ifdef DEBUG
+          Serial.print(bitR);
+         #endif
+         
+        if(bitR == 0x01)
+        {
+             
+          value += powerOfTwo(j);
+          #ifdef DEBUG2
+          Serial.print("[");
+           Serial.print(powerOfTwo(j));
+           Serial.print("]");
+           #endif
+         }
+     
+         if(((i+1) % 4)  == 0)
+           {
+             #ifdef DEBUG
+             Serial.print("(");
+             Serial.print(value,HEX);
+             Serial.print(")");
+             Serial.print(" ");
+             #endif
+             
+             sum += value;
+             value=0;
+             j=4;
+           }    
+         
+         j--;
          i++;
        }
        
      }
+     sum &= 0x0F;
      #ifdef DEBUG
-       sum = sum & 0x0F;
        Serial.print(" SUM:");
        Serial.print(sum,HEX);
        Serial.println();
@@ -267,4 +288,18 @@ byte getValue()
     readI = 0;
    
   return b;
+}
+
+int powerOfTwo(int expo)
+{
+  int value=0;
+  for(int i=0;i<expo+1;i++)
+  {
+    if(i==0)
+      value = 1;
+    else
+      value *= 2;
+  }
+  
+  return value;
 }
