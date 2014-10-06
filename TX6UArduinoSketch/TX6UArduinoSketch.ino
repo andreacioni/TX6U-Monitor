@@ -58,7 +58,8 @@
 **/
 
 
-#define PIN 2 // interrupt -> 0 on Arduino UNO
+#define INTERRUPT_PIN 39 // pin 2 -> interrupt 0 on Arduino UNO
+#define LED_PIN 45
 #define BUFF_LEN 200
 
 volatile unsigned long currTime=0,lastTime=0;
@@ -84,9 +85,12 @@ void setup() {
   
   #ifdef DEBUG
     Serial.begin(9600);
+    pinMode(LED_PIN,OUTPUT);
   #endif
   
-  attachInterrupt(0,isr,CHANGE);
+  attachInterrupt(INTERRUPT_PIN,isr,CHANGE);
+  
+  //digitalWrite(LED_PIN,HIGH);
 }
 
 void loop() {
@@ -228,7 +232,9 @@ boolean recognizePattern()
 
 void isr() {
   currTime = micros();
-  currState = digitalRead(PIN);  
+  currState = digitalRead(INTERRUPT_PIN);  
+  
+  digitalWrite(LED_PIN,LOW);
   
   diff = currTime - lastTime;
   
