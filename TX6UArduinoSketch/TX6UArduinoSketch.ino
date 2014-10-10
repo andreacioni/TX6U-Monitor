@@ -61,6 +61,15 @@
 #define INTERRUPT_PIN 39 // pin 2 -> interrupt 0 on Arduino UNO
 #define LED_PIN 45
 #define BUFF_LEN 200
+#define MESSAGE_QUEUE_LEN 3
+
+struct msg_map
+{
+  int id;
+  float temp;
+};
+
+struct msg_map incoming[MESSAGE_QUEUE_LEN];
 
 volatile unsigned long currTime=0,lastTime=0;
 volatile int currState=0,readI=0,writeI=0;
@@ -72,11 +81,18 @@ volatile boolean longHighDetect = false;
 
 int waited=0;
 
+boolean msgReady = false;
+
 boolean recognizePattern();
 void printRing();
 void putValue(byte);
 byte getValue();
 int powerOfTwo(int); //pow() give round error need to be re-write!!!
+boolean checkMessage(byte[]);
+void buildMsg(byte[]);
+struct msg_map get();
+void put(struct msg_map);
+
 
 #define DEBUG
 //define DEBUG2
@@ -96,65 +112,98 @@ void setup() {
 void loop() {
   if(recognizePattern())
   {
-    unsigned long start = micros() + 2000000; // 2 sec.
+    unsigned long start = micros() + 1000000; // 1 sec.
     
     #ifdef DEBUG
      Serial.println("pattern rec!");
-     Serial.print("0000(0) 1010(A) ");
+     Serial.print("0000 1010 ");
     #endif
     
-    int i=0,j=3,value=0,sum=10,chk=0; // 0A init pattern
+    int i=0,j=3; // 0A init pattern
+    byte msg[36];
     
-     while(i<32 && micros() < start)
+     while(i<36 && micros() < start)
      {
        if(readI != writeI)
        {
-         byte bitR = getValue();
+         msg[i] = getValue();
          
          #ifdef DEBUG
-          Serial.print(bitR);
+          Serial.print(msg[i]);
+          if(((i+1)%4)==0)
+            Serial.print(" ");
          #endif
          
-        if(bitR == 0x01)
-        {
-             
-          value += powerOfTwo(j);
-          #ifdef DEBUG2
-          Serial.print("[");
-           Serial.print(powerOfTwo(j));
-           Serial.print("]");
-           #endif
-         }
-     
-         if(((i+1) % 4)  == 0)
+         if(i==35)
+           if(checkMessage(msg))
            {
-             #ifdef DEBUG
-             Serial.print("(");
-             Serial.print(value,HEX);
-             Serial.print(")");
-             Serial.print(" ");
-             #endif
-             
-             sum += value;
-             value=0;
-             j=4;
-           }    
-         
-         j--;
-         i++;
-       }
-       
+             Serial.println("Correct message received!"); 
+             buildMsg(msg);
+             msgReady = true;
+           } 
+           
+         i++;        
+       }       
      }
-     sum &= 0x0F;
-     #ifdef DEBUG
-       Serial.print(" SUM:");
-       Serial.print(sum,HEX);
-       Serial.println();
-     #endif
           
   }
     
     //printRing();
+}
+
+boolean checkMessage(byte message[])
+{
+  byte val=0,chk=(byte)0x0A,sum=0;
+  int parity_bit=0;
+  
+  #ifdef DEBUG
+     Serial.println();
+  #endif
+  
+  for(int j=0;j<8;j++)
+  {    
+    for(int i=(4*j);i<(4*(j+1));i++)
+    {  if(message[i] == 1)
+      {
+        #ifdef DEBUG1
+          Serial.print(powerOfTwo(i-(4*j)),DEC);
+        #endif
+        
+        val += (byte) powerOfTwo(i-(4*j));
+      }
+    }
+    
+    sum += val;      
+    
+    #ifdef DEBUG
+     Serial.print(" [ ");
+     Serial.print(val,HEX);
+     Serial.print(" ] ");
+     
+     Serial.print(" ( ");
+     Serial.print(sum,HEX);
+     Serial.println(" ) ");
+    #endif
+    
+    val = 0;
+  }
+  
+  sum &= (byte) 0x0F;
+  
+  #ifdef DEBUG
+    Serial.print(" SUM = ");
+    Serial.println(sum,HEX);
+  #endif
+  
+  for(int i=32;i<36;i++)
+    if(message[i] == 1)
+        chk += (byte) powerOfTwo(32-i);  
+   
+   if(chk == sum)
+     return true;
+   else
+     return false;
+  
 }
 
 #ifdef DEBUG
@@ -294,6 +343,21 @@ byte getValue()
     readI = 0;
    
   return b;
+}
+
+void buildMsg(byte msg[])
+{
+  
+}
+
+void put(struct msg_map)
+{
+  
+}
+
+struct msg_map get(struct msg_map)
+{
+  
 }
 
 int powerOfTwo(int expo)
