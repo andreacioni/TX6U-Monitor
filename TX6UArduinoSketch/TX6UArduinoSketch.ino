@@ -347,7 +347,21 @@ byte getValue()
 
 void buildMsg(byte msg[])
 {
+	struct msg_map newMsg;
+	
+	newMsg.id=0;
+	newMsg.temp=0.0f;
+	
+  for(int i=4;i<11;i++)
+  	if(msg[i]==1)
+  		newMsg.id += powerOfTwo(i-4);
+  		
+  #ifdef DEBUG
+    Serial.print(" ID = ");
+    Serial.println(newMsg.id,DEC);
+  #endif
   
+  return newMsg;
 }
 
 void put(struct msg_map)
