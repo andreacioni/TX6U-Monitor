@@ -366,12 +366,22 @@ void buildMsg(byte msg[])
 
 void put(struct msg_map)
 {
-  
+  if(queueEnd < MESSAGE_QUEUE_LEN)
+  {
+    incoming[queueEnd] = msg_map;
+    queueEnd++;
+  }
 }
 
-struct msg_map get(struct msg_map)
+struct msg_map get()
 {
+  if( queueEnd > 0)
+  {
+   queueEnd--;
+   return incoming[queueEnd];
+  }
   
+  return NULL;
 }
 
 int powerOfTwo(int expo)
