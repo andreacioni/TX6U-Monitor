@@ -88,7 +88,6 @@ boolean recognizePattern();
 void printRing();
 void putValue(byte);
 byte getValue();
-int powerOfTwo(int); //pow() give round error need to be re-write!!!
 boolean checkMessage(byte[]);
 void buildMsg(byte[]);
 struct msg_map get();
@@ -97,7 +96,7 @@ void blink();
 
 
 #define DEBUG
-//define DEBUG2
+//#define DEBUG2
 
 void setup() {
   
@@ -146,7 +145,10 @@ void loop() {
              #endif
              
              buildMsg(msg);
-           } 
+           } else 
+             #ifdef DEBUG
+               Serial.println("ERROR, wrong checksum");
+             #endif
            
          i++;        
        }       
@@ -160,8 +162,8 @@ void loop() {
 
 boolean checkMessage(byte message[])
 {
-  byte val=0,chk=(byte)0x0A,sum=0;
-  int parity_bit=0;
+  byte val=0,chk=0,sum=(byte)0x0A; //chk = A because is the value of start sequence
+  //int parity_bit=0;
   
   #ifdef DEBUG
      Serial.println();
@@ -172,11 +174,14 @@ boolean checkMessage(byte message[])
     for(int i=(4*j);i<(4*(j+1));i++)
     {  if(message[i] == 1)
       {
-        #ifdef DEBUG1
-          Serial.print(powerOfTwo(i-(4*j)),DEC);
+        #ifdef DEBUG2
+          Serial.print(3-(i%4),DEC);
+          Serial.print(" -- ");
+          Serial.print(1 << (3-(i%4)),DEC);
+          Serial.print(" / ");
         #endif
         
-        val += (byte) powerOfTwo(i-(4*j));
+        val += (byte) (1 << (3-(i%4)));
       }
     }
     
@@ -197,15 +202,17 @@ boolean checkMessage(byte message[])
   
   sum &= (byte) 0x0F;
   
-  #ifdef DEBUG
-    Serial.print("[CHK ");
-    Serial.print(sum,HEX);
-    Serial.println("]");
-  #endif
-  
   for(int i=32;i<36;i++)
     if(message[i] == 1)
-        chk += (byte) powerOfTwo(32-i);  
+        chk += (byte) (1 << (3-(i%4)));
+      
+  #ifdef DEBUG
+    Serial.print("[CHK ");
+    Serial.print(chk,HEX);
+    Serial.print(",SUM ");
+    Serial.print(sum,HEX);
+    Serial.println("]");
+  #endif  
    
    if(chk == sum)
      return true;
@@ -360,11 +367,32 @@ void buildMsg(byte msg[])
 	
   for(int i=4;i<11;i++)
     if(msg[i]==1)
-      incoming.id += powerOfTwo(i-4);
+      incoming.id += (1 << (6-(i%4)));
   		
   #ifdef DEBUG
     Serial.print(" ID = ");
     Serial.println(incoming.id,DEC);
+  #endif
+  
+  incoming.temp=0;
+  
+  for(int j=3;j<8;j++)
+  { 
+    int val=0;   
+    
+    for(int i=(4*j);i<(4*(j+1));i++)
+    {  if(msg[i] == 1)
+      {       
+        val += (byte) (1 << (3-(i%4)));
+      }
+    }
+    
+    incoming.temp += val * pow(10,4-j);
+  }
+  		
+  #ifdef DEBUG
+    Serial.print(" TEMP = ");
+    Serial.println(incoming.temp);
   #endif
   
   msgReady = true;
@@ -377,20 +405,6 @@ boolean available() {
 struct msg_map get()
 {
   return incoming;
-}
-
-int powerOfTwo(int expo)
-{
-  int value=0;
-  for(int i=0;i<expo+1;i++)
-  {
-    if(i==0)
-      value = 1;
-    else
-      value *= 2;
-  }
-  
-  return value;
 }
 
 void blink() {
