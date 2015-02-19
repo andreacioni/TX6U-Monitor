@@ -58,10 +58,11 @@
 **/
 
 
-#define INTERRUPT_PIN 39 // pin 2 -> interrupt 0 on Arduino UNO
-#define LED_PIN 45
+#define INTERRUPT_PIN 2 // e.g. pin number: 2 -> interrupt: 0 on Arduino UNO
+#define INTERRUPT_NUMBER 0 // e.g. pin number: 8 -> interrupt: 8 on Arduino DUE
+
+#define LED_PIN 13 // used for debug
 #define BUFF_LEN 200
-#define MESSAGE_QUEUE_LEN 3
 
 struct msg_map
 {
@@ -69,9 +70,9 @@ struct msg_map
   float temp;
 };
 
-struct msg_map incoming[MESSAGE_QUEUE_LEN];
+struct msg_map incoming;
 
-volatile unsigned long currTime=0,lastTime=0;
+volatile unsigned long currTime=0,lastTime=0,blinkTime=0;
 volatile int currState=0,readI=0,writeI=0;
 volatile unsigned long diff;
 volatile byte buff[BUFF_LEN],b;
@@ -79,7 +80,7 @@ volatile byte buff[BUFF_LEN],b;
 volatile boolean shortHighDetect = false;
 volatile boolean longHighDetect = false;
 
-int waited=0;
+int waited=0; //what we wait 
 
 boolean msgReady = false;
 
@@ -91,7 +92,8 @@ int powerOfTwo(int); //pow() give round error need to be re-write!!!
 boolean checkMessage(byte[]);
 void buildMsg(byte[]);
 struct msg_map get();
-void put(struct msg_map);
+boolean available();
+void blink();
 
 
 #define DEBUG
@@ -104,9 +106,9 @@ void setup() {
     pinMode(LED_PIN,OUTPUT);
   #endif
   
-  attachInterrupt(INTERRUPT_PIN,isr,CHANGE);
+  attachInterrupt(INTERRUPT_NUMBER,isr,CHANGE);
   
-  //digitalWrite(LED_PIN,HIGH);
+  digitalWrite(LED_PIN,LOW);
 }
 
 void loop() {
@@ -137,9 +139,13 @@ void loop() {
          if(i==35)
            if(checkMessage(msg))
            {
-             Serial.println("Correct message received!"); 
+             #ifdef DEBUG
+               Serial.println("Correct message received!"); 
+               digitalWrite(LED_PIN,HIGH);
+               blinkTime = millis()+300; //300ms of blink
+             #endif
+             
              buildMsg(msg);
-             msgReady = true;
            } 
            
          i++;        
@@ -147,8 +153,9 @@ void loop() {
      }
           
   }
-    
-    //printRing();
+  
+  blink();
+  //printRing();
 }
 
 boolean checkMessage(byte message[])
@@ -191,8 +198,9 @@ boolean checkMessage(byte message[])
   sum &= (byte) 0x0F;
   
   #ifdef DEBUG
-    Serial.print(" SUM = ");
-    Serial.println(sum,HEX);
+    Serial.print("[CHK ");
+    Serial.print(sum,HEX);
+    Serial.println("]");
   #endif
   
   for(int i=32;i<36;i++)
@@ -283,7 +291,7 @@ void isr() {
   currTime = micros();
   currState = digitalRead(INTERRUPT_PIN);  
   
-  digitalWrite(LED_PIN,LOW);
+  //digitalWrite(LED_PIN,LOW);
   
   diff = currTime - lastTime;
   
@@ -346,42 +354,29 @@ byte getValue()
 }
 
 void buildMsg(byte msg[])
-{
-	struct msg_map newMsg;
-	
-	newMsg.id=0;
-	newMsg.temp=0.0f;
+{	
+  incoming.id=0;
+  incoming.temp=0.0f;
 	
   for(int i=4;i<11;i++)
-  	if(msg[i]==1)
-  		newMsg.id += powerOfTwo(i-4);
+    if(msg[i]==1)
+      incoming.id += powerOfTwo(i-4);
   		
   #ifdef DEBUG
     Serial.print(" ID = ");
-    Serial.println(newMsg.id,DEC);
+    Serial.println(incoming.id,DEC);
   #endif
   
-  return newMsg;
+  msgReady = true;
 }
 
-void put(struct msg_map)
-{
-  if(queueEnd < MESSAGE_QUEUE_LEN)
-  {
-    incoming[queueEnd] = msg_map;
-    queueEnd++;
-  }
+boolean available() {
+   return msgReady; 
 }
 
 struct msg_map get()
 {
-  if( queueEnd > 0)
-  {
-   queueEnd--;
-   return incoming[queueEnd];
-  }
-  
-  return NULL;
+  return incoming;
 }
 
 int powerOfTwo(int expo)
@@ -396,4 +391,12 @@ int powerOfTwo(int expo)
   }
   
   return value;
+}
+
+void blink() {
+  if(blinkTime!=0)
+    if(millis() > (blinkTime)) {
+      digitalWrite(LED_PIN,LOW);
+      blinkTime = 0;
+    }    
 }
