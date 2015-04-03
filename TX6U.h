@@ -39,6 +39,7 @@ class TX6U
     void blink();
 #endif
     boolean _celsius = false;
+    int _waited=0;
   
 };
 

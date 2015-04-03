@@ -3,7 +3,7 @@
 
 int _pin,_interrupt;
 
-volatile unsigned long currTime=0,lastTime=0,blinkTime=0;
+volatile unsigned long currTime=0,_lastTime=0,blinkTime=0;
 volatile int currState=0,readI=0,writeI=0;
 volatile unsigned long diff;
 volatile byte buff[BUFF_LEN],b;
@@ -11,7 +11,7 @@ volatile boolean shortHighDetect = false;
 volatile boolean longHighDetect = false;
 
 struct msg_map incoming;
-int waited=0;
+//int waited=0;
 boolean msgReady = false;
 
 static void putValue(byte);
@@ -100,57 +100,57 @@ boolean TX6U::recognizePattern() {
   if(readI == writeI)
    return false;
   
-  switch(waited)
+  switch(_waited)
   {
     case 0:
       if(getValue() == 0)
-        waited++;
+        _waited++;
       else
-        waited=0;
+        _waited=0;
       break;
     case 1:
       if(getValue() == 0)
-        waited++;
+        _waited++;
       else
-        waited=0;
+        _waited=0;
       break;
     case 2:
       if(getValue() == 0)
-        waited++;
+        _waited++;
       else
-        waited=0;
+        _waited=0;
       break;
     case 3:
      if(getValue() == 0)
-        waited++;
+        _waited++;
       else
-        waited=0;
+        _waited=0;
       break;
     case 4:
       if(getValue() == 1)
-        waited++;
+        _waited++;
       else
-        waited=0;
+        _waited=0;
       break;
     case 5:
       if(getValue() == 0)
-        waited++;
+        _waited++;
       else
-        waited=0;
+        _waited=0;
       break;
     case 6:
       if(getValue() == 1)
-        waited++;
+        _waited++;
       else
-        waited=0;
+        _waited=0;
       break;
     case 7:
      if(getValue() == 0)
       {  
-        waited=0;
+        _waited=0;
         return true;
       }
-      waited=0;
+      _waited=0;
       break;
   }
   
@@ -302,9 +302,9 @@ static void TX6UISR() {
   
   //digitalWrite(LED_PIN,LOW);
   
-  diff = currTime - lastTime;
+  diff = currTime - _lastTime;
   
-  if((lastTime != 0) && (diff > 400) && (diff < 1400))
+  if((_lastTime != 0) && (diff > 400) && (diff < 1400))
   {      
        if(currState == LOW)
        {
@@ -339,6 +339,6 @@ static void TX6UISR() {
        }     
   }
   
-  lastTime = currTime;
+  _lastTime = currTime;
   //lastState = currState;
 }
